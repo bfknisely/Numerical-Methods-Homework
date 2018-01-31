@@ -420,6 +420,8 @@ function figures
   % Increase font size of plot elements
   set([gca, l, xl, yl], 'fontsize', 16);
   figure(1, 'position', [50 50 600 450])
+  saveas(1,'hw2_figure1.png');  % Save figure to file "hw2_figure1.png"
+  close(1)  % Close the figure
 
   % Make figure for |error| vs x for UDS and CDS solutions
   figure(2)  % Create Figure "2"
@@ -431,6 +433,8 @@ function figures
   % Increase font size of plot elements
   set([gca, l, xl, yl], 'fontsize', 16);
   figure(2, 'position', [650 50 600 450])
+  saveas(2,'hw2_figure2.png');   % Save figure to file "hw2_figure2.png"
+  close(2)  % Close the figure
 
 end
 
