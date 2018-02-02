@@ -8,6 +8,19 @@
 
 clear; close all; format compact; more off;
 
+nn = [20, 40, 80, 160, 320, 640, 1280, 2560, 20, 20, 20];
+dxrat_arr = [1., 1., 1., 1., 1., 1., 1., 1., 0.9, 1., 1.1];
+comb = zeros((length(nn))*length(dxrat_arr), 3);
+
+ind = 0;
+
+%errU = zeros((length(nn)+1)*length(dxrat), max(nn));
+%errC = zeros((length(nn)+1)*length(dxrat), max(nn));
+
+for nnn = 1:length(nn);
+    ind = ind + 1
+    st = sprintf('s%01i',ind)
+
 % This script solves a steady, linear, one-dimensional convection-diffusion
 %   equation on the domain xmin to xmax with constant properties and with
 %   Dirichlet boundary conditions at both ends:
@@ -69,8 +82,8 @@ phir = 2.;
 %   0.<dxrat<1. for a finer grid  (smaller dx) with increasing x
 %   dxrat>1.    for a coarser grid (larger dx) with increasing x
 
-n     = 25;
-dxrat = 1.0;
+n = nn(nnn)
+dxrat = dxrat_arr(nnn)
 
 %%%%% compute derived variables %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -341,9 +354,9 @@ function numerical_1d_cds
     
       % CDS diffusion contributions (unchanged)
       %dxr = 2.*dif / ( x(i) - x(i-1) );  % 
-      awd = -dif / (x(i) - x(i-1))**2;  % West coefficient
-      aed = -dif / (x(i) - x(i-1))**2;  % East coefficient
-      apd = 2*dif / ( x(i) - x(i-1) )**2;  % Coefficient at point
+      awd = -dif / ( (x(i) - x(i-1))*(x(i+1) - x(i-1))/2 );  % West coefficient
+      aed = -dif / ( (x(i+1) - x(i-1))*(x(i+1) - x(i))/2 );  % East coefficient
+      apd = 2*dif / ( (x(i) - x(i-1))*(x(i+1) - x(i)) );  % Coefficient at point
       
       % fill row i coefficient matrix and right-hand-side values
       aw(i) = awc + awd;
@@ -512,9 +525,68 @@ numerical_1d_cds;
 errors;
 
 % plot the results
-figures;
+%figures;
 
 % write an output file with the results
-outfile;
+%outfile;
+
+[a, ind95] = min(abs((x-0.95)))
+
+
+comb(ind, 1) = n;
+comb(ind, 2) = dxrat;
+comb(ind, 3) = ind
+
+if nnn < 9
+  phiU.(st) = phiuds(ind95)
+  phiC.(st) = phicds(ind95);
+  errU.(st) = abs(erruds(ind95));
+  errC.(st) = abs(errcds(ind95));
+  dX.(st) = x(2)- x(1);
+else
+  errU.(st) = erruds;
+  errC.(st) = errcds;
+  X.(st) = x;
+end
+end  % loop for values of N
+
 
 %%%%% all done %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+pu = [];
+pc = [];
+
+for ii = 1:8;
+st = sprintf('s%01i', ii);
+disp(st)
+pu(end+1) = errU.(st);
+pc(end+1) = errC.(st);
+figure(1); hold on;
+loglog(dX.(st), errU.(st), 'ko', 'markersize', 10, 'linewidth', 5)
+loglog(dX.(st), errC.(st), 'rx', 'markersize', 10,'linewidth', 5);
+end
+l = legend('UDS1', 'CDS2', ...
+'location', 'northwest');
+xl = xlabel('\Deltax'); yl = ylabel('|Error|');
+set([gca, l, xl, yl], 'fontsize', 18);
+figure(1, 'position', [50 50 600 450]);
+
+% Calculate P, the slope of the error vs dx curve
+P_u = 1/log(2) * log( (pu(end-1)-pu(end-2)) / (pu(end)-pu(end-1)) )
+P_c = 1/log(2) * log( (pc(end-1)-pc(end-2)) / (pc(end)-pc(end-1)) )
+
+% Plot figure from error as function of x for different dxrat (0.9, 1, 1.1)
+for ii = 9:11;
+  st = sprintf('s%01i', ii);
+  disp(st);
+  figure(2); hold on;
+  semilogy(X.(st)(2:end), errU.(st)(2:end), '-', 'linewidth', 3, ...
+  X.(st)(2:end), errC.(st)(2:end), '-.', 'linewidth', 3);
+end
+figure(2, 'position', [650 50 800 550]);
+l = legend('UDS1, dx_{rat} = 0.9', 'CDS2, dx_{rat} = 0.9', ...
+'UDS1, dx_{rat} = 1.0', 'CDS2, dx_{rat} = 1.0', ...
+'UDS1, dx_{rat} = 1.1', 'CDS2, dx_{rat} = 1.1', ...
+'location', 'southeast');
+xl = xlabel('x'); yl = ylabel('|Error|');
+set([gca, l, xl, yl], 'fontsize', 18);
