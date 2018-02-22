@@ -585,34 +585,43 @@ pc_fine = pc(4:6);  % For high numbers of gridpoints (160, 320, 640)
 
 % Calculate convergence rate (P) for coarse grids (10, 20, 40)
 % UDS case
-P_uds_coarse = 1/log(2) * log((pu_coarse(end-1)-pu_coarse(end-2)) / (pu_coarse(end)-pu_coarse(end-1)));
+P_uds_coarse = 1/log(2) * log((pu_coarse(end-1)-pu_coarse(end-2)) / ...
+              (pu_coarse(end)-pu_coarse(end-1)));
 % CDS case
-P_cds_coarse = 1/log(2) * log((pc_coarse(end-1)-pc_coarse(end-2)) / (pc_coarse(end)-pc_coarse(end-1)));
+P_cds_coarse = 1/log(2) * log((pc_coarse(end-1)-pc_coarse(end-2)) / ...
+              (pc_coarse(end)-pc_coarse(end-1)));
 
 % Calculate convergence rate (P) for fine grids (160, 320, 640)
 % UDS case
-P_uds_fine = 1/log(2) * log((pu_fine(end-1)-pu_fine(end-2)) / (pu_fine(end)-pu_fine(end-1)));
+P_uds_fine = 1/log(2) * log((pu_fine(end-1)-pu_fine(end-2)) / ...
+            (pu_fine(end)-pu_fine(end-1)));
 % CDS case
-P_cds_fine = 1/log(2) * log((pc_fine(end-1)-pc_fine(end-2)) / (pc_fine(end)-pc_fine(end-1)));
+P_cds_fine = 1/log(2) * log((pc_fine(end-1)-pc_fine(end-2)) / ...
+            (pc_fine(end)-pc_fine(end-1)));
 
-phiEst_uds_coarse = phiU.n40 + P_uds_coarse * dX.n40;
-phiEst_cds_coarse = phiC.n40 + P_cds_coarse * dX.n40;
-phiEst_uds_fine = phiU.n640 + P_uds_fine * dX.n640;
-phiEst_cds_fine = phiC.n640 + P_cds_fine * dX.n640;
+ep_uds_coarse = (phiU.n40 - phiU.n20)/(2^P_uds_coarse - 1);
+ep_cds_coarse = (phiC.n40 - phiC.n20)/(2^P_cds_coarse - 1);
+ep_uds_fine = (phiU.n640 - phiU.n320)/(2^P_uds_fine - 1);
+ep_cds_fine = (phiC.n640 - phiC.n320)/(2^P_cds_fine - 1);
+
+phiEst_uds_coarse = phiU.n40 + ep_uds_coarse;
+phiEst_cds_coarse = phiC.n40 + ep_cds_coarse;
+phiEst_uds_fine = phiU.n640 + ep_uds_fine;
+phiEst_cds_fine = phiC.n640 + ep_cds_fine;
 
 % First use CDS for all parts
 % Part a
 fprintf('\nPart a:\n')
 phiEst_cds_coarse
 P_cds_coarse
-errC.n40
+ep_cds_coarse
 phian90
 
 % Part b
 fprintf('\nPart b:\n')
 phiEst_cds_fine
 P_cds_fine
-errC.n640
+ep_cds_fine
 phian90
 
 % Part c
@@ -651,14 +660,14 @@ set(p, 'linewidth', 3);
 fprintf('\nPart da:\n')
 phiEst_uds_coarse
 P_uds_coarse
-errU.n40
+ep_uds_coarse
 phian90
 
 % Part d - like part b
 fprintf('\nPart db:\n')
 phiEst_uds_fine
 P_uds_fine
-errU.n640
+ep_uds_fine
 phian90
 
 % Part d - like part c
