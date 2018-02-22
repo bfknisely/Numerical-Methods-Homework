@@ -660,3 +660,31 @@ phiEst_uds_fine
 P_uds_fine
 errU.n640
 phian90
+
+% Part d - like part c
+errCoarseEst(1) = abs(phiU.n10-phiEst_uds_coarse);
+errCoarseEst(2) = abs(phiU.n20-phiEst_uds_coarse);
+errCoarseEst(3) = abs(phiU.n40-phiEst_uds_coarse);
+
+errCoarseAn(1) = abs(phiU.n10-phian90);
+errCoarseAn(2) = abs(phiU.n20-phian90);
+errCoarseAn(3) = abs(phiU.n40-phian90);
+
+errFineEst(1) = abs(phiU.n160-phiEst_uds_fine);
+errFineEst(2) = abs(phiU.n320-phiEst_uds_fine);
+errFineEst(3) = abs(phiU.n640-phiEst_uds_fine);
+
+errFineAn(1) = abs(phiU.n160-phian90);
+errFineAn(2) = abs(phiU.n320-phian90);
+errFineAn(3) = abs(phiU.n640-phian90);
+
+figure(22)
+p = loglog(dxCoarse, errCoarseEst, 'ko-', dxCoarse, errCoarseAn, 'rs-.',...
+     dxFine, errFineEst, 'bd--', dxFine, errFineAn, 'm:p');
+xlabel('\Deltax', 'fontsize', 18);
+ylabel('|Error|', 'fontsize', 18);
+leg = legend('wrt UDS, coarse, RE', 'wrt Analytic', 'wrt UDS, fine, RE', ...
+       'wrt Analytic', 'location', 'southeast');
+set(gca, 'fontsize', 18);
+set(leg, 'fontsize', 16);
+set(p, 'linewidth', 3);
