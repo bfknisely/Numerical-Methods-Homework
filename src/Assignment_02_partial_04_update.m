@@ -8,8 +8,8 @@
 
 clear; close all; format compact; more off;
 
-nn = [20, 40, 80, 160, 320, 640, 1280, 2560, 20, 20, 20];
-dxrat_arr = [1., 1., 1., 1., 1., 1., 1., 1., 0.9, 1., 1.1];
+nn = [10, 20, 40, 160, 320, 640];
+dxrat_arr = [1., 1., 1., 1., 1., 1.];
 comb = zeros((length(nn))*length(dxrat_arr), 3);
 
 ind = 0;
@@ -18,8 +18,8 @@ ind = 0;
 %errC = zeros((length(nn)+1)*length(dxrat), max(nn));
 
 for nnn = 1:length(nn);
-    ind = ind + 1
-    st = sprintf('s%01i',ind)
+    ind = ind + 1;
+    st = sprintf('n%i',nn(ind));
 
 
 % This script solves a steady, linear, one-dimensional convection-diffusion
@@ -74,7 +74,7 @@ xmin = 0.;
 xmax = 1.;
 den  = 1.;
 vel  = 10.;
-dif  = 0.2;
+dif  = 0.5;
 phil = 1.;
 phir = 2.;
 
@@ -83,8 +83,8 @@ phir = 2.;
 %   0.<dxrat<1. for a finer grid  (smaller dx) with increasing x
 %   dxrat>1.    for a coarser grid (larger dx) with increasing x
 
-n = nn(nnn)
-dxrat = dxrat_arr(nnn)
+n = nn(nnn);
+dxrat = dxrat_arr(nnn);
 
 %%%%% compute derived variables %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -446,7 +446,7 @@ function figures
   l = legend('UDS1', 'CDS2', 'location', 'northwest');
   % Increase font size of plot elements
   set([gca, l, xl, yl], 'fontsize', 16);
-  figure(2, 'position', [650 50 600 450])
+  figure(2, 'position', [650 50 600 450]);
   saveas(2,'hw2_figure2.png');   % Save figure to file "hw2_figure2.png"
   close(2)  % Close the figure
 
@@ -531,18 +531,19 @@ errors;
 % write an output file with the results
 %outfile;
 
-[a, ind95] = min(abs((x-0.95)))
+[a, ind90] = min(abs((x-0.9)));
+phian90 = phian(ind90);
 
 
 comb(ind, 1) = n;
 comb(ind, 2) = dxrat;
-comb(ind, 3) = ind
+comb(ind, 3) = ind;
 
 if nnn < 9
-  phiU.(st) = phiuds(ind95)
-  phiC.(st) = phicds(ind95);
-  errU.(st) = abs(erruds(ind95));
-  errC.(st) = abs(errcds(ind95));
+  phiU.(st) = phiuds(ind90);
+  phiC.(st) = phicds(ind90);
+  errU.(st) = abs(erruds(ind90));
+  errC.(st) = abs(errcds(ind90));
   dX.(st) = x(2)- x(1);
 else
   errU.(st) = erruds;
@@ -557,37 +558,105 @@ end  % loop for values of N
 pu = [];
 pc = [];
 
-for ii = 1:8;
-st = sprintf('s%01i', ii);
-disp(st)
-pu(end+1) = errU.(st);
-pc(end+1) = errC.(st);
-figure(1); hold on;
-loglog(dX.(st), errU.(st), 'ko', 'markersize', 10, 'linewidth', 5)
-loglog(dX.(st), errC.(st), 'rx', 'markersize', 10,'linewidth', 5);
+for ii = 1:6;
+  st = sprintf('n%i',nn(ii));
+  pu(end+1) = errU.(st);
+  pc(end+1) = errC.(st);
+%  if ii <= 3
+%    figure(1); hold on;
+%  else
+%    figure(2); hold on;
+%  end
+%  loglog(dX.(st), errU.(st), 'ko', 'markersize', 10, 'linewidth', 5);
+%  loglog(dX.(st), errC.(st), 'rx', 'markersize', 10,'linewidth', 5);
+%  l = legend('UDS1', 'CDS2', ...
+%  'location', 'northwest');
+%  xl = xlabel('\Deltax'); yl = ylabel('|Error|');
+%  set([gca, l, xl, yl], 'fontsize', 18);
+%  figure(gcf, 'position', [650 50 600 450]);
 end
-l = legend('UDS1', 'CDS2', ...
-'location', 'northwest');
-xl = xlabel('\Deltax'); yl = ylabel('|Error|');
-set([gca, l, xl, yl], 'fontsize', 18);
-figure(1, 'position', [50 50 600 450]);
+%figure(gcf, 'position', [50 50 600 450]);
 
-% Calculate P, the slope of the error vs dx curve
-P_u = 1/log(2) * log( (pu(end-1)-pu(end-2)) / (pu(end)-pu(end-1)) )
-P_c = 1/log(2) * log( (pc(end-1)-pc(end-2)) / (pc(end)-pc(end-1)) )
+% Split values of pu and pc for low gridpoints case and high gridpoints case
+pu_coarse = pu(1:3);  % For low numbers of gridpoints (10, 20, 40)
+pc_coarse = pc(1:3);  % For low numbers of gridpoints (10, 20, 40)
+pu_fine = pu(4:6);  % For high numbers of gridpoints (160, 320, 640)
+pc_fine = pc(4:6);  % For high numbers of gridpoints (160, 320, 640)
 
-% Plot figure from error as function of x for different dxrat (0.9, 1, 1.1)
-for ii = 9:11;
-  st = sprintf('s%01i', ii);
-  disp(st);
-  figure(2); hold on;
-  semilogy(X.(st)(2:end), errU.(st)(2:end), '-', 'linewidth', 3, ...
-  X.(st)(2:end), errC.(st)(2:end), '-.', 'linewidth', 3);
-end
-figure(2, 'position', [650 50 800 550]);
-l = legend('UDS1, dx_{rat} = 0.9', 'CDS2, dx_{rat} = 0.9', ...
-'UDS1, dx_{rat} = 1.0', 'CDS2, dx_{rat} = 1.0', ...
-'UDS1, dx_{rat} = 1.1', 'CDS2, dx_{rat} = 1.1', ...
-'location', 'southeast');
-xl = xlabel('x'); yl = ylabel('|Error|');
-set([gca, l, xl, yl], 'fontsize', 18);
+% Calculate convergence rate (P) for coarse grids (10, 20, 40)
+% UDS case
+P_uds_coarse = 1/log(2) * log((pu_coarse(end-1)-pu_coarse(end-2)) / (pu_coarse(end)-pu_coarse(end-1)));
+% CDS case
+P_cds_coarse = 1/log(2) * log((pc_coarse(end-1)-pc_coarse(end-2)) / (pc_coarse(end)-pc_coarse(end-1)));
+
+% Calculate convergence rate (P) for fine grids (160, 320, 640)
+% UDS case
+P_uds_fine = 1/log(2) * log((pu_fine(end-1)-pu_fine(end-2)) / (pu_fine(end)-pu_fine(end-1)));
+% CDS case
+P_cds_fine = 1/log(2) * log((pc_fine(end-1)-pc_fine(end-2)) / (pc_fine(end)-pc_fine(end-1)));
+
+phiEst_uds_coarse = phiU.n40 + P_uds_coarse * dX.n40;
+phiEst_cds_coarse = phiC.n40 + P_cds_coarse * dX.n40;
+phiEst_uds_fine = phiU.n640 + P_uds_fine * dX.n640;
+phiEst_cds_fine = phiC.n640 + P_cds_fine * dX.n640;
+
+% First use CDS for all parts
+% Part a
+fprintf('\nPart a:\n')
+phiEst_cds_coarse
+P_cds_coarse
+errC.n40
+phian90
+
+% Part b
+fprintf('\nPart b:\n')
+phiEst_cds_fine
+P_cds_fine
+errC.n640
+phian90
+
+% Part c
+dxCoarse = [dX.n10, dX.n20, dX.n40]
+
+errCoarseEst(1) = abs(phiC.n10-phiEst_cds_coarse)
+errCoarseEst(2) = abs(phiC.n20-phiEst_cds_coarse)
+errCoarseEst(3) = abs(phiC.n40-phiEst_cds_coarse)
+
+errCoarseAn(1) = abs(phiC.n10-phian90)
+errCoarseAn(2) = abs(phiC.n20-phian90)
+errCoarseAn(3) = abs(phiC.n40-phian90)
+
+dxFine = [dX.n160, dX.n320, dX.n640]
+
+errFineEst(1) = abs(phiC.n160-phiEst_cds_fine)
+errFineEst(2) = abs(phiC.n320-phiEst_cds_fine)
+errFineEst(3) = abs(phiC.n640-phiEst_cds_fine)
+
+errFineAn(1) = abs(phiC.n160-phian90)
+errFineAn(2) = abs(phiC.n320-phian90)
+errFineAn(3) = abs(phiC.n640-phian90)
+
+p = loglog(dxCoarse, errCoarseEst, 'ko-', dxCoarse, errCoarseAn, 'rs-.',...
+     dxFine, errFineEst, 'bd--', dxFine, errFineAn, 'm:p')
+xlabel('\Deltax', 'fontsize', 18)
+ylabel('|Error|', 'fontsize', 18)
+leg = legend('wrt CDS, coarse, RE', 'wrt Analytic', 'wrt CDS, fine, RE', ...
+       'wrt Analytic', 'location', 'southeast')
+set(gca, 'fontsize', 18)
+set(leg, 'fontsize', 16)
+set(p, 'linewidth', 3)
+
+% Part d is to do everything again but with UDS instead of CDS
+% Part d - like part a
+fprintf('\nPart da:\n')
+phiEst_uds_coarse
+P_uds_coarse
+errU.n40
+phian90
+
+% Part d - like part b
+fprintf('\nPart db:\n')
+phiEst_uds_fine
+P_uds_fine
+errU.n640
+phian90
