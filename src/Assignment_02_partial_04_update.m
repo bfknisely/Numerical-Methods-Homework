@@ -616,35 +616,35 @@ errC.n640
 phian90
 
 % Part c
-dxCoarse = [dX.n10, dX.n20, dX.n40]
+dxCoarse = [dX.n10, dX.n20, dX.n40];
 
-errCoarseEst(1) = abs(phiC.n10-phiEst_cds_coarse)
-errCoarseEst(2) = abs(phiC.n20-phiEst_cds_coarse)
-errCoarseEst(3) = abs(phiC.n40-phiEst_cds_coarse)
+errCoarseEst(1) = abs(phiC.n10-phiEst_cds_coarse);
+errCoarseEst(2) = abs(phiC.n20-phiEst_cds_coarse);
+errCoarseEst(3) = abs(phiC.n40-phiEst_cds_coarse);
 
-errCoarseAn(1) = abs(phiC.n10-phian90)
-errCoarseAn(2) = abs(phiC.n20-phian90)
-errCoarseAn(3) = abs(phiC.n40-phian90)
+errCoarseAn(1) = abs(phiC.n10-phian90);
+errCoarseAn(2) = abs(phiC.n20-phian90);
+errCoarseAn(3) = abs(phiC.n40-phian90);
 
-dxFine = [dX.n160, dX.n320, dX.n640]
+dxFine = [dX.n160, dX.n320, dX.n640];
 
-errFineEst(1) = abs(phiC.n160-phiEst_cds_fine)
-errFineEst(2) = abs(phiC.n320-phiEst_cds_fine)
-errFineEst(3) = abs(phiC.n640-phiEst_cds_fine)
+errFineEst(1) = abs(phiC.n160-phiEst_cds_fine);
+errFineEst(2) = abs(phiC.n320-phiEst_cds_fine);
+errFineEst(3) = abs(phiC.n640-phiEst_cds_fine);
 
-errFineAn(1) = abs(phiC.n160-phian90)
-errFineAn(2) = abs(phiC.n320-phian90)
-errFineAn(3) = abs(phiC.n640-phian90)
+errFineAn(1) = abs(phiC.n160-phian90);
+errFineAn(2) = abs(phiC.n320-phian90);
+errFineAn(3) = abs(phiC.n640-phian90);
 
 p = loglog(dxCoarse, errCoarseEst, 'ko-', dxCoarse, errCoarseAn, 'rs-.',...
-     dxFine, errFineEst, 'bd--', dxFine, errFineAn, 'm:p')
-xlabel('\Deltax', 'fontsize', 18)
-ylabel('|Error|', 'fontsize', 18)
+     dxFine, errFineEst, 'bd--', dxFine, errFineAn, 'm:p');
+xlabel('\Deltax', 'fontsize', 18);
+ylabel('|Error|', 'fontsize', 18);
 leg = legend('wrt CDS, coarse, RE', 'wrt Analytic', 'wrt CDS, fine, RE', ...
-       'wrt Analytic', 'location', 'southeast')
-set(gca, 'fontsize', 18)
-set(leg, 'fontsize', 16)
-set(p, 'linewidth', 3)
+       'wrt Analytic', 'location', 'southeast');
+set(gca, 'fontsize', 18);
+set(leg, 'fontsize', 16);
+set(p, 'linewidth', 3);
 
 % Part d is to do everything again but with UDS instead of CDS
 % Part d - like part a
