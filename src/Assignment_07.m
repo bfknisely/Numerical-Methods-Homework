@@ -1197,7 +1197,7 @@ end
 function gs
   
   % globals needed
-  global ap ano aso aea awe q phidir n m epsit resmax errmax nitmax xc yc tt
+  global apt anot asot aeat awet qt phidir n m epsit resmax errmax nitmax xc yc tt
   global phinew iterstore
 
   iterstore = 0;  % storage variable for iteration count
@@ -1208,17 +1208,18 @@ function gs
   % set internal nodes to be zero
   phinew(2:end-1, 2:end-1) = 0;
   
-  nit = 0;
+  nit = 0; % iteration counter
+  
   while max(max(abs(phidir - phinew))) > epsit*max(max(phinew));
     
     nit = nit + 1;
     
     for j = 2:m+1
       for i = 2:n+1
-        phinew(i, j) = (q(i,j) - ano(i,j)*phinew(i,j+1) ...
-                        - aso(i,j)*phinew(i,j-1) ...
-                        - aea(i,j)*phinew(i+1,j) ...
-                        - awe(i,j)*phinew(i-1,j))/ap(i,j);
+        phinew(i, j) = (qt(i,j) - anot(i,j)*phinew(i,j+1) ...
+                        - asot(i,j)*phinew(i,j-1) ...
+                        - aeat(i,j)*phinew(i+1,j) ...
+                        - awet(i,j)*phinew(i-1,j))/apt(i,j);
       end
     end
   
@@ -1226,16 +1227,16 @@ function gs
     
     % Periodically show results
     if mod(nit, 50) == 0
-      fprintf('t=%.4f, GS it=%.0f, errmax=%.4e\n',tt, nit, errmax(nit));
+      fprintf('t=%.3f, GS it=%.0f, errmax=%.4e\n',tt, nit, errmax(nit));
     end
     
     for j = 2:m+1
       for i = 2:n+1
-        resTemp(i,j) = q(i,j) - ano(i,j)*phinew(i,j+1) ...
-                        - aso(i,j)*phinew(i,j-1) ...
-                        - aea(i,j)*phinew(i+1,j) ...
-                        - awe(i,j)*phinew(i-1,j) ...
-                        - ap(i,j)*phinew(i,j);
+        resTemp(i,j) = qt(i,j) - anot(i,j)*phinew(i,j+1) ...
+                        - asot(i,j)*phinew(i,j-1) ...
+                        - aeat(i,j)*phinew(i+1,j) ...
+                        - awet(i,j)*phinew(i-1,j) ...
+                        - apt(i,j)*phinew(i,j);
       end
     end
     
@@ -1243,6 +1244,9 @@ function gs
     
     phiold = phinew;
     phi = phinew;
+    
+    % update RHS vector Q
+    unsteady_RHS;
         
     iterstore = nit;  % save number of iterations in global var
     % Break out of the while loop if maximum number of iterations is reached
@@ -1269,7 +1273,7 @@ end
 function gs_sor
   
   % globals needed
-  global ap ano aso aea awe q phidir n m epsit resmax errmax nitmax xc yc
+  global apt anot asot aeat awet qt phidir n m epsit resmax errmax nitmax xc yc
   global phinew omega phiold iterstore
 
   iterstore = 0;  % storage variable for iteration count
@@ -1289,10 +1293,10 @@ function gs_sor
     
     for j = 2:m+1
       for i = 2:n+1
-        phinew(i, j) = omega*(q(i,j) - ano(i,j)*phiold(i,j+1) ...
-                        - aso(i,j)*phinew(i,j-1) ...
-                        - aea(i,j)*phiold(i+1,j) ...
-                        - awe(i,j)*phinew(i-1,j))/ap(i,j) ...
+        phinew(i, j) = omega*(qt(i,j) - anot(i,j)*phiold(i,j+1) ...
+                        - asot(i,j)*phinew(i,j-1) ...
+                        - aeat(i,j)*phiold(i+1,j) ...
+                        - awet(i,j)*phinew(i-1,j))/apt(i,j) ...
                         + (1-omega)*phiold(i,j);
       end
     end
@@ -1307,11 +1311,11 @@ function gs_sor
     
     for j = 2:m+1
       for i = 2:n+1
-        resTemp(i,j) = q(i,j) - ano(i,j)*phinew(i,j+1) ...
-                        - aso(i,j)*phinew(i,j-1) ...
-                        - aea(i,j)*phinew(i+1,j) ...
-                        - awe(i,j)*phinew(i-1,j) ...
-                        - ap(i,j)*phinew(i,j);
+        resTemp(i,j) = qt(i,j) - anot(i,j)*phinew(i,j+1) ...
+                        - asot(i,j)*phinew(i,j-1) ...
+                        - aeat(i,j)*phinew(i+1,j) ...
+                        - awet(i,j)*phinew(i-1,j) ...
+                        - apt(i,j)*phinew(i,j);
       end
     end
     
@@ -1433,7 +1437,7 @@ from_1d_to_2d;  fprintf('1D to 2D...\n')
 postbc; fprintf('postbc...\n')
 
 % generate a 2D contour plot of phi
-phi2dcontourplot;
+%phi2dcontourplot;
 
 % compute flowrates across boundaries of the computational domain
 bndryflowrates;
@@ -1450,6 +1454,7 @@ numiters = []
 cputimes = []
 
 tic
+unsteady_coeffs_LHS;
 for tt = 0:dt:tfinal
   gs;
   phi = phinew;

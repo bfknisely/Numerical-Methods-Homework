@@ -6,7 +6,7 @@ cflag              =            2
 
 pedx_max,pedy_max  =     0.557823     0.557823 
 
-lufactor_cpu,lusolve_cpu =    35.862854     2.664207 
+lufactor_cpu,lusolve_cpu =    34.944183     2.473114 
 
 mdot_xmin,mdot_xmax,mdot_ymin,mdot_ymax =  +0.000000e+000  +1.200000e+000  +0.000000e+000  -1.200000e+000 
 cdot_xmin,cdot_xmax,cdot_ymin,cdot_ymax =  +0.000000e+000  +1.345125e-001  +0.000000e+000  +0.000000e+000 
