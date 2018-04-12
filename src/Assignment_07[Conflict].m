@@ -180,7 +180,7 @@ cflag = 2;
 %%%%% parameters related to iterative solver %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 itm = 2;  % use GS iterative solver
-nitmax = 20000;
+nitmax = 8000;
 epsit = 1e-12;
 omega = 1.1;
 
@@ -644,11 +644,7 @@ function unsteady_coeffs_LHS
     apt  = den*dx*dy/dt*ones(size(apt)) + ap;
     
   else;  % if tmethod == 3;  % Crank-Nicolson
-    awet = awe/2;
-    asot = aso/2;
-    anot = ano/2;
-    aeat = aea/2;
-    apt  = den*dx*dy/dt * ones(size(apt)) + ap/2;    
+    
   end
 
 endfunction
@@ -672,7 +668,7 @@ function unsteady_RHS
       for j = 2:m+1
         qt(i,j) = q(i,j) + (den*dx*dy/dt).*phi(i,j) - awe(i,j)*phi(i-1,j) ...
                   - aso(i,j)*phi(i,j-1) - ano(i,j)*phi(i,j+1) ...
-                  - aea(i,j)*phi(i+1,j)  - ap(i,j)*phi(i,j);
+                  - aea(i,j)*phi(i+1,j);
       end
     end
     
@@ -684,13 +680,7 @@ function unsteady_RHS
     end
 
   else;  % if tmethod == 3;  % Crank-Nicolson
-    for i = 2:n+1
-      for j = 2:m+1
-        qt(i,j) = q(i,j) + (den*dx*dy/dt).*phi(i,j) - awe(i,j)*phi(i-1,j)/2 ...
-                  - aso(i,j)*phi(i,j-1)/2 - ano(i,j)*phi(i,j+1)/2 ...
-                  - aea(i,j)*phi(i+1,j)/2 - ap(i,j)*phi(i,j)/2;
-      end
-    end
+    qt = 0;
   end
 
 endfunction
@@ -1207,38 +1197,34 @@ end
 function gs
   
   % globals needed
-  global apt anot asot aeat awet qt phidir n m epsit resmax errmax nitmax xc yc
-  global phinew iterstore phi tt
+  global apt anot asot aeat awet qt phidir n m epsit resmax errmax nitmax xc yc tt
+  global phinew iterstore phi
 
   iterstore = 0;  % storage variable for iteration count
   phinew = phidir;  % initialize array for "new" phi values
   
   resTemp = zeros(m, n);  % initialize local array to store residuals
   
-  % set internal nodes to be zero for initial time
-  if tt == 0;
-    phinew(2:end-1, 2:end-1) = 0;
-  end
+  % set internal nodes to be zero
+  phinew(2:end-1, 2:end-1) = 0;
   
   nit = 0; % iteration counter
-  ERRMAX = 1; % initialize scalar variable for max error
-  
-  while ERRMAX > epsit*max(max(phinew));
-    
+  errmax = [1]; % initilize value to compare in inequality below
+  while errmax(end) > epsit*max(max(phinew));
     nit = nit + 1;
     
     for j = 2:m+1
       for i = 2:n+1
-        phinew(i, j) = (qt(i,j) - anot(i,j)*phinew(i,j+1) ...
-                        - asot(i,j)*phinew(i,j-1) ...
-                        - aeat(i,j)*phinew(i+1,j) ...
-                        - awet(i,j)*phinew(i-1,j))/apt(i,j);
+        phinew(i, j) = (qt(i,j) - anot(i,j)*phi(i,j+1) ...
+                        - asot(i,j)*phi(i,j-1) ...
+                        - aeat(i,j)*phi(i+1,j) ...
+                        - awet(i,j)*phi(i-1,j))/apt(i,j);
       end
     end
-    
+     
     % Periodically show results
-    if mod(nit, 50) == 0;
-      fprintf('t=%.3f, GS it=%.0f, errmax=%.4e\n', tt, nit, ERRMAX);
+    if mod(nit, 50) == 0
+      fprintf('t=%.3f, GS it=%.0f, errmax=%.4e\n',tt, nit, errmax(nit));
     end
     
     for j = 2:m+1
@@ -1265,17 +1251,18 @@ function gs
       break
     end
     
-    errmax(nit) = max(max(abs(phidir - phinew)));  % calculate max error
-    ERRMAX = max(max(abs(phidir - phinew)));  % calculate max error
-    
+    % update maximum difference value to compare
+    errmax(nit) = max(max(abs(phidir - phinew)));
+
   end  % end while loop
   
   if nit == nitmax;
-    fprintf('GS solution did not converge in %.0f iterations.\n', nitmax);
+    fprintf('GS solution did not converge in %4.0f iterations.\n', nitmax);
   else
-    fprintf('t = %.4f GS solution converged in %.0f iterations. Errmax = %.4e\n',...
-            tt, nit, ERRMAX);
+    fprintf('t=%.3f, GS converged in %4.0f iterations. Errmax = %.4e\n', ...
+            tt, nit, errmax);
   end
+  
   
 end
 
@@ -1302,7 +1289,9 @@ function gs_sor
   phinew(2:end-1, 2:end-1) = 0;
   
   nit = 0;
-  while max(max(abs(phidir - phinew))) > epsit*max(max(phinew));
+  maxDiff = 1;  % initialize difference value to something greater than RHS of
+                % inequality below:
+  while maxDiff > epsit*max(max(phinew));
     
     nit = nit + 1;
     
@@ -1315,7 +1304,7 @@ function gs_sor
                         + (1-omega)*phiold(i,j);
       end
     end
-  
+    
     errmax(nit) = max(max(abs(phidir - phinew)));  % compute errmax
     
     % Periodically show results
@@ -1346,14 +1335,17 @@ function gs_sor
       break
     end
     
+    % update maximum difference value to compare
+    maxDiff = max(max(abs(phidir - phinew)));
+    
   end  % end while loop
   
   if nit == nitmax;
     fprintf('GS-SOR [w=%1.1f] did not converge in %4.0f iterations.\n', ...
             omega, nitmax)
   else
-    fprintf('GS-SOR [w=%1.1f] converged in %4.0f iterations.\n', ...
-            omega, nit)
+    fprintf('GS-SOR [w=%1.1f] converged in %4.0f iterations. Errmax = %.4e',...
+            '\n', omega, nit, errmax)
   end
   
 end
@@ -1392,7 +1384,7 @@ function local_quantities
   
   % print results to file
   fileID = fopen('local_quantites.txt','w');
-  fprintf('%.16f\n%.16f\n%.16f\n%.16f\n%.16f\n', phi_center, dphidx_centerleft, ...
+  fprintf('1:%f\t2:%f\t3:%f\t4:%f\t5:%f\n', phi_center, dphidx_centerleft, ...
           phi_centerleft, phi_centerbottom, dphidy_centertop);
   fclose(fileID);
 
@@ -1464,16 +1456,11 @@ local_quantities;
 
 phidir = phi;  % assign values to phi_direct
 
-
-
 % Solve for phi with iterative GS solver
 numiters = [];
 cputimes = [];
 
 tic
-tmethod = 1;
-dt = 0.002;
-tfinal = 1;
 unsteady_coeffs_LHS;
 for tt = 0:dt:tfinal
   gs;
@@ -1485,4 +1472,4 @@ for tt = 0:dt:tfinal
   end
 end
 
-cputimes(end+1) = toc;
+cpus(end+1) = toc;

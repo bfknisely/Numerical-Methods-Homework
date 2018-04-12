@@ -1,0 +1,14 @@
+xmin,xmax          =     0.000000     1.000000 
+ymin,ymax          =     0.000000     1.000000 
+den,dif            =     1.200000     0.100000 
+n,m                =           21           21 
+cflag              =            2      
+
+pedx_max,pedy_max  =     0.557823     0.557823 
+
+lufactor_cpu,lusolve_cpu =    31.789680     2.251740 
+
+mdot_xmin,mdot_xmax,mdot_ymin,mdot_ymax =   +0.000000e+00   +1.200000e+00   +0.000000e+00   -1.200000e+00 
+cdot_xmin,cdot_xmax,cdot_ymin,cdot_ymax =   +0.000000e+00   +1.345125e-01   +0.000000e+00   +0.000000e+00 
+ddot_xmin,ddot_xmax,ddot_ymin,ddot_ymax =   -1.439149e-01   +0.000000e+00   +0.000000e+00   +9.402363e-03 
+mdot_tot,cdot_tot,cdot_tot,phidot_tot   =   +0.000000e+00   +1.345125e-01   +1.345125e-01   +1.082467e-15 
