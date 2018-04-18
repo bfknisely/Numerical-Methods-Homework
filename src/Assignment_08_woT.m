@@ -21,6 +21,9 @@
 % Not tested:
 %   buoyancy source term and calct(beta,gravx,gravy)
 
+% clear variables and close all figures
+clear; close all;
+
 %%%%% define global variables %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % scalars: physical quantities
@@ -103,9 +106,9 @@ global alfa;    % parameter for the SIP linear system solver
 % scalars: output control
 global nprt;    % number of computational time steps between writing output
                 %   for ltime=1
-global imon;    % i (x) index of monotoring location control volume
+global imon;    % i (x) index of monitoring location control volume
                 %   1<=imon<=ncvx
-global jmon;    % j (y) index of monotoring location control volume
+global jmon;    % j (y) index of monitoring location control volume
                 %   1<=jmon<=ncvy
 global ijmon;   % monitoring cell id in 1D indexing
 
@@ -216,9 +219,9 @@ nphi    = 4;
 ncvx    =  20;
 ncvy    =  20;
 
-ltime   = 0;
+ltime   = 1; % 0 for steady, 1 for unsteady
 dt      = 0.1;
-itst    = 1;
+itst    = 100;
 nprt    = 1;
 
 ipr     = 3;
@@ -242,8 +245,8 @@ lcal(4) = 1;
 urf     = zeros(nphi,1); 
 urf(1)  = 0.8;
 urf(2)  = 0.8;
-urf(3)  = 0.2;
-urf(4)  = 0.8;
+urf(3)  = 0.3;
+urf(4)  = 0.9;
 
 sor     = zeros(nphi,1); 
 sor(1)  = 0.2;
@@ -329,12 +332,15 @@ res   = zeros(nxy,1);
 resor = zeros(nphi,1);   
                 
 li    = zeros(nx,1);      
-
+fprintf('Initialized. ');
 %%%%% define functions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 %%% set up the 2d grid %%%
 
 function grid_2d
+  fprintf('grid_2d. ');
 % compute cell-center and cell-face-center locations, geometric
 %   interpolation coefficients, array for 1D-2D indexing conversions,
 %   and ijmon
@@ -410,6 +416,8 @@ function grid_2d
 
 % --- end indexing conventions ---
  
+ 
+ 
 % grid spacings in x and in y
 
   dx  = ( xmax - xmin ) / ncvx;
@@ -479,9 +487,12 @@ endfunction
 
 %%% end of grid_2d %%%
 
+
+
 %%% set internal solution control parameters and variables %%%
 
 function solnparm
+  fprintf('solnparm. ');
 % compute cell-center and cell-face-center locations, geometric
 
 % global variables needed by this function
@@ -507,9 +518,12 @@ endfunction
 
 %%% end of solnparm %%%
 
+
+
 %%% set boundary conditions for dependent variables %%%
 
 function bcs
+  fprintf('bcs. ');
 % all arrays were initialized to zero, so just set nonzero values here
 
 % global variables needed by this function
@@ -540,9 +554,12 @@ endfunction
 
 %%% end of bcs %%%
 
+
+
 %%% set initial conditions for dependent variables %%%
 
 function ics
+  fprintf('ics.\n');
 % all initial conditions are uniform in the interior of the computational
 %   domain
 % take care not to overwrite the boundary conditions
@@ -575,9 +592,12 @@ endfunction
 
 %%% end of ics %%%
 
+
+
 %%% solve a linear system using Stone's SIP solver %%%
 
 function sipsol(ifi)
+
 % solve a linear system using Stone's SIP solver
 
 % ifi=1: solve for x velocity component
@@ -694,6 +714,8 @@ endfunction
 
 %%% end of sipsol %%%
 
+
+
 %%% set time-dependent BCs %%%
 
 function bctime
@@ -723,6 +745,7 @@ endfunction
 %%% set boundary pressure or pressure correction %%%
 
 function pbound(pflag)
+
 % set boundary pressure or pressure correction using linear extrapolation
 %   from inside
 
@@ -780,9 +803,12 @@ endfunction
 
 %%% end of pbound %%%
 
+
+
 %%% implement boundary conditions for momentum equations %%%
 
 function bcuv
+  
 % implement boundary conditions for momentum equations 
 
 % global variables needed by this function
@@ -830,6 +856,8 @@ endfunction
 
 %%% end of bcuv %%%
 
+
+
 %%% implement boundary conditions for energy (temperature) equation %%%
 
 function bct
@@ -876,9 +904,12 @@ endfunction
 
 %%% end of bct %%%
 
+
+
 %%% solve for x and y velocity components (momentum predictor equation) %%%
 
 function calcuv
+
 % solve linearized momentum equation (momentum predictor)
 
 % global variables needed by this function
@@ -1063,9 +1094,12 @@ endfunction
 
 %%% end of calcuv %%%
 
+
+
 %%% solve for pressure %%%
 
 function calcp
+
 % solve the pressure correction equation, and apply pressure and velocity
 %   corrections
 % also set cell face mass flow rates
@@ -1195,9 +1229,12 @@ endfunction
 
 %%% end of calcp %%%
 
+
+
 %%% solve for temperature %%%
 
 function calct
+
 % solve for temperature
 
 % global variables needed by this function
@@ -1217,7 +1254,8 @@ function calct
   global t
   
 %%% initialize su and ap to zero
-
+  su(:) = 0;
+  ap(:) = 0;
   
 %%% compute convection and diffusion contributions for east and west faces
 % set contributions to aea, awe, and su
@@ -1226,7 +1264,35 @@ function calct
 % keep UDS convection on left-hand side of the linear system (implicit terms),
 %   and put the rest of the convection contribution on the right-hand side
 %   as a deferred correction; see calcuv for examples
-  
+
+  for i=2:nim-1
+    fxe  = gfacx(i); % cell-face geometric interpolation factors
+    fxp  = 1. - fxe; % 1 - (cell-face geometric interpolation factors)
+    dx = xc(i) - xc(i-1); % current dx value
+    
+    for j=2:njm
+      ij  = li(i) + j; % current index translated to 1D array index
+      ije = ij + nj; % next index to the east translated to 1D array index
+    
+      dy = yf(j) - yf(j-1);
+      
+      % diffusive flux coefficient
+      d = visc*prr*dy/dx;
+      
+      ce = min(f1(ij), 0.);
+      cp = max(f1(ij), 0.);       
+      
+      aea(ij) = ce - d;
+      awe(ije) = -cp - d;
+      
+      fuds = cp*t(ij) + ce*t(ije);
+      fcds = f1(ij)*(t(ije)*fxe + t(ij)*fxp);
+      
+      su(ij)  = su(ij) + gds(ien) * (fuds - fcds);
+      su(ije) = su(ije) - gds(ien) * (fuds - fcds);
+      
+    end
+  end
 
 %%% compute convection and diffusion contributions for north and south faces
 % set contributions to ano, aso, and su
@@ -1235,29 +1301,78 @@ function calct
 % keep UDS convection on left-hand side of the linear system (implicit terms),
 %   and put the rest of the convection contribution on the right-hand side
 %   as a deferred correction; see calcuv for examples
-  
+  for j=2:njm-1
+    fyn  = gfacy(i); % cell-face geometric interpolation factors
+    fyp  = 1. - fyn; % 1 - (cell-face geometric interpolation factors)
+    dy = yc(j) - yc(j-1); % current dy value
+    
+    for i=2:nim
+      ij  = li(i) + j; % current index translated to 1D array index
+      ijn = ij + 1; % next index to the east translated to 1D array index
+      
+      dx = xf(i) - xf(i-1);
+      
+      % diffusive flux coefficient
+      d = visc*prr*dx/dy;
+      
+      % convective fluxes
+      cn = min(f2(ij), 0.);
+      cp = max(f2(ij), 0.);       
+          
+      ano(ij) = cn - d;
+      aso(ijn) = -cp - d;
+      
+      fuds = cp*t(ij) + cn*t(ijn);
+      fcds = f2(ij) * (t(ijn)*fyn + t(ij)*fyp);
+      
+      su(ij)  = su(ij) + gds(ien) * (fuds - fcds);
+      su(ijn) = su(ijn) - gds(ien) * (fuds - fcds);
+      
+    end
+  end  
 
 %%% compute volume integrals
 % here the only contribution is from the unsteady term
-
-
-%%% apply bcs
-
+  for i = 2:nim;
+    dx = xf(i) - xf(i-1);
+    
+    for j = 2:njm;
+      ij = li(i) + j;
+      dy = yf(j) - yf(j-1);
+      vol = dx*dy;
+      
+      if ltime == 1;
+        apt = densit*vol*dtr;
+        su(ij) = su(ij) + apt*t0(ij);
+        ap(ij) = ap(ij) + apt;
+      end
+    end
+  end
+  %%% apply bcs
+  bct;
   
-%%% apply under-relaxation to ap and su
-% see calcuv for examples
-  
+  %%% apply under-relaxation to ap and su
+  % see calcuv for examples
+  for i = 2:nim;
+    for ij = li(i) + 2: li(i) + nj
+        ap(ij) = (ap(ij) - awe(ij) - aea(ij) - ano(ij) - aso(ij))/urf(ien);
+        su(ij) = su(ij) + (1. - urf(ien))*ap(ij)*t(ij);
+    end
+  end
 
-%%% solve for temperature
-
+  %%% solve for temperature
+  sipsol(ien)
   
 endfunction
 
 %%% end of calct %%%
 
+
+
 %%% generate 2d contour plots of dependent variables %%%
 
 function contourplots
+
 % generate 2d contout plots of computed dependent variable fields
 % simple version works only for equal number of cells in x and in y
 
@@ -1337,7 +1452,15 @@ endfunction
 
 %%% end of contourplots %%%
 
+%%%%%%%%%%%%%%%%%%%%%%% end of function definitions %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
 %%%%% execute the program %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% turn off stupid octave paging output
+more off;
 
 % generate the grid and set related geometric parameters
 grid_2d;
@@ -1360,11 +1483,42 @@ monfile = fopen('mon_steady.txt','w');
 %%% march solution in time from the initial condition for itst time steps %%%
 % note that itst=1 for a steady-state problem (with ltime=0)
 
+istore = [];
+ustore = [];
+vstore = [];
+pstore = [];
+tstore = [];
+rustore = [];
+rvstore = [];
+rpstore = [];
+rtstore = [];
+
+ttime = [];
+uu = [];
+vv = [];
+ppres = [];
+tt = [];
+
 time = 0;
+if ltime == 0;
+  itst = 1;
+
+else;
+  urf(:) = 1;
+  maxit = 10;
+  dt = 100000;
+  itst = 5000;
+end
+
 for itim=1:itst
   time = time + dt;
+  ttime(end+1) = time;
+  uu(end+1) = u(ijmon);
+  vv(end+1) = v(ijmon);
+  ppres(end+1) = p(ijmon);
+  tt(end+1) = t(ijmon);
   
-% save values from end of previous time step
+  % save values from end of previous time step
   if(ltime==1);
     for ij=1:nij
       u0(ij) = u(ij);
@@ -1373,16 +1527,28 @@ for itim=1:itst
     end
   endif 
 
-% update for time-dependent BCs
+  % update for time-dependent BCs
   if(ltime==1);
     bctime;
   endif
   
-%%% outer iteration loop %%%
+  % store velocities, pressure, and temperature values
+  uu(end+1) = abs(u(ijmon));
+  vv(end+1) = abs(v(ijmon));
+  pp(end+1) = abs(p(ijmon));
+  tt(end+1) = abs(t(ijmon));
+  
+  %%% outer iteration loop %%%
   iter   = 0;
   source = 2.*sormax;
   while ( iter<=maxit && source>sormax );
     iter = iter + 1;
+    istore(end+1) = iter;
+    
+    uOld = u(ijmon);
+    vOld = v(ijmon);
+    pOld = p(ijmon);
+    tOld = t(ijmon);
     
     if( lcal(iu)==1 );
       calcuv;
@@ -1394,26 +1560,56 @@ for itim=1:itst
       calct;
     endif
     
-% check for convergence of outer iterations
+    % store velocities, pressure, and temperature values
+    ustore(end+1) = abs(u(ijmon));
+    vstore(end+1) = abs(v(ijmon));
+    pstore(end+1) = abs(p(ijmon));
+    tstore(end+1) = abs(t(ijmon));
+    % store residual values
+    rustore(end+1) = abs(u(ijmon)-uOld);
+    rvstore(end+1) = abs(v(ijmon)-vOld);
+    rpstore(end+1) = abs(p(ijmon)-pOld);
+    rtstore(end+1) = abs(t(ijmon)-tOld);    
+    
+    % check for convergence of outer iterations
     source = max( resor );
+%    fprintf('%3.0f of %3.0f timesteps; it=%4.0f; err=%.6e\n', ...
+%            itim, itst, iter, source)
     if( source>slarge );
-      printf('solution diverging');
+      printf('solution diverging. ');
       break;
     endif
 
-% write end-of-outer-iteration output
+  % write end-of-outer-iteration output
   fprintf(resfile,'%+15e %15i %+15e %+15e %+15e %+15e %+15e %+15e %+15e %+15e \n', ...
                    time,iter,u(ijmon),v(ijmon),p(ijmon),t(ijmon),resor(1),resor(2),resor(3),resor(4));
      
   endwhile % end of outer iteration loop
-   
-% write end-of-timestep output
-    fprintf(resfile,'%+15e %15i %+15e %+15e %+15e %+15e %+15e %+15e %+15e %+15e \n', ...
+  
+  % compare unsteady values to steady result
+  if itst > 1;
+    fprintf('uS = %6.4e, vS = %6.4e, pS = %6.4e, TS = %6.4e; \n', 0.081263, ...
+            0.068126, 6.8230e-004, 347.51)    
+    fprintf('uU = %6.4e, vU = %6.4e, pU = %6.4e, TU = %6.4e; itim %.0f \n', ...
+            abs(u(ijmon)), abs(v(ijmon)), abs(p(ijmon)), abs(t(ijmon)), itim)
+    
+    
+%    if abs(u(ijmon)-0.081263) < 0.081263/100 && ...
+%      abs(v(ijmon)-0.068126) < 0.068126/100 && ...
+%      abs(p(ijmon)-6.8230e-004) < 6.8230e-004/100 && ...
+%      abs(t(ijmon)-347.51) < 347.51/100
+%      fprintf('\nSolution within 2 sig figs of steady solution!\n')
+%      break
+%    end
+  end 
+ 
+  % write end-of-timestep output
+  fprintf(resfile,'%+15e %15i %+15e %+15e %+15e %+15e %+15e %+15e %+15e %+15e \n', ...
                    time,iter,u(ijmon),v(ijmon),p(ijmon),t(ijmon),resor(1),resor(2),resor(3),resor(4));
-    fprintf(monfile,'%+15e %+15e %+15e %+15e %+15e \n', ...
+  fprintf(monfile,'%+15e %+15e %+15e %+15e %+15e \n', ...
                      time,u(ijmon),v(ijmon),p(ijmon),t(ijmon));
     
-% plot end-of-timestep fields
+  % plot end-of-timestep fields
 
 end % end of time loop
 
@@ -1424,5 +1620,47 @@ fclose(monfile);
 
 % plot final fields
 contourplots;
+
+% plot values and residuals vs iteration
+if itst == 1;
+  figure(5);
+  semilogy(istore, ustore, '-', 'linewidth', 3, ...
+            istore, vstore, '-.', 'linewidth', 2, ...
+            istore, pstore, '-.', 'linewidth', 3, ...
+            istore, tstore, '-', 'linewidth', 2)
+  xlabel('Iteration', 'fontsize', 18);
+  ylabel('Value', 'fontsize', 18);
+  leg = legend({'u', 'v', 'p', 'T'});
+  set(gca, 'fontsize', 18)
+  set(leg, 'fontsize', 18)
+  
+  figure(6);
+  loglog(istore, rustore, '-', 'linewidth', 3, ...
+          istore, rvstore, '-.', 'linewidth', 2, ...
+        istore, rpstore, '-.',  'linewidth', 3, ...
+        istore, rtstore, '-', 'linewidth', 2)
+  xlabel('Iteration', 'fontsize', 18);
+  ylabel('Residual', 'fontsize', 18);
+  leg = legend({'u', 'v', 'p', 'T'});
+  set(gca, 'fontsize', 18)
+  set(leg, 'fontsize', 18)
+
+else;
+  % Plot unsteady results
+  figure(7);
+  semilogy(ttime, abs(uu(1:2:end)), '-', 'linewidth', 3, ...
+          ttime, abs(vv(1:2:end)), '-.', 'linewidth', 2, ...
+        ttime, abs(ppres), '-.',  'linewidth', 3, ...
+        ttime, abs(tt(1:2:end)), '-', 'linewidth', 2)
+  xlabel('Time', 'fontsize', 18);
+  ylabel('Value', 'fontsize', 18);
+  leg = legend({'u', 'v', 'p', 'T'});
+  set(gca, 'fontsize', 18)
+  set(leg, 'fontsize', 18)
+  
+end
+
+
+
 
 %%%%% all done %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
